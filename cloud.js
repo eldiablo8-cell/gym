@@ -171,15 +171,17 @@ async function main() {
   }
 
   // ---- accesso ----
+  // includeMetadataChanges: avvisa anche quando passa da 'dati dalla memoria del dispositivo' a 'dati confermati dal server'
+  const META = { includeMetadataChanges: true };
   Au.onAuthStateChanged(auth, u => {
     unsubs.forEach(f => f()); unsubs = [];
     merged = { d: false, p: false, l: false };
     if (!u) { uid = null; setState('☁ Accedi', 'Non connesso: tocca per accedere'); ov.hidden = skipped; return; }
     uid = u.uid; ov.hidden = true; setState('☁ …', 'Connessione…');
     unsubs.push(
-      F.onSnapshot(col('days'), applyDays, onErr),
-      F.onSnapshot(col('plans'), applyPlans, onErr),
-      F.onSnapshot(F.doc(col('meta'), 'lib'), applyLib, onErr)
+      F.onSnapshot(col('days'), META, applyDays, onErr),
+      F.onSnapshot(col('plans'), META, applyPlans, onErr),
+      F.onSnapshot(F.doc(col('meta'), 'lib'), META, applyLib, onErr)
     );
   });
 
