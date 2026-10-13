@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gym Log</title>
+<style>
+:root{--bg:#12141a;--card:#1c202a;--line:#2d3342;--txt:#eef1f6;--mut:#8b94a8;--acc:#ff6a2b;--ok:#3ecf8e;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f2f4f8;--card:#fff;--line:#d5dae5;--txt:#161a22;--mut:#667085}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;font-size:18px}
+header{display:flex;gap:12px;align-items:center;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);flex-wrap:wrap}
+h1{font-size:22px;margin:0 8px 0 0;color:var(--acc);letter-spacing:.5px}
+input,button{font:inherit;color:inherit}
+input{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+input:focus{outline:2px solid var(--acc)}
+button{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 16px;cursor:pointer;min-height:46px}
+button:active{transform:scale(.97)}
+button.on{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+#ath{width:200px;font-weight:700}
+.nav{display:flex;gap:8px;align-items:center}
+#lbl{min-width:190px;text-align:center;font-weight:700;text-transform:capitalize}
+.sp{flex:1}
+main{flex:1;overflow:auto;padding:14px 16px}
+.cols{display:flex;gap:14px;align-items:flex-start;overflow-x:auto;padding-bottom:10px}
+.g{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;min-width:340px;width:340px;flex:none}
+.g .t{width:100%;font-size:20px;font-weight:800;color:var(--acc);background:transparent;border:none;border-bottom:2px solid var(--line);border-radius:0;padding:6px 2px;margin-bottom:8px}
+.hd,.e{display:grid;grid-template-columns:1fr 52px 52px 66px 34px;gap:6px;align-items:center}
+.hd{font-size:12px;color:var(--mut);text-transform:uppercase;padding:0 2px 4px}
+.e{margin-bottom:6px}
+.e input{padding:8px 6px;text-align:center;width:100%}
+.e input:first-child{text-align:left}
+.x{padding:0;min-height:34px;color:var(--mut)}
+.add{width:100%;margin-top:4px;border-style:dashed;color:var(--mut)}
+.vol{font-size:13px;color:var(--mut);margin-top:8px;text-align:right}
+.newg{min-width:200px;width:200px;height:120px;border-style:dashed;color:var(--mut);font-size:20px}
+.empty{text-align:center;color:var(--mut);margin-top:60px;font-size:22px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+.d{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;min-height:200px;cursor:pointer}
+.d.tod{border-color:var(--acc)}
+.d h3{margin:0 0 6px;font-size:15px;text-transform:capitalize}
+.d .tag{display:inline-block;background:var(--bg);border-radius:8px;padding:2px 8px;margin:2px 2px 0 0;font-size:14px}
+.d small{display:block;color:var(--mut);margin-top:8px;font-size:13px}
+.month{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.mh{text-align:center;color:var(--mut);font-size:14px;text-transform:uppercase}
+.m{background:var(--card);border:1px solid var(--line);border-radius:10px;min-height:68px;padding:6px;cursor:pointer;font-size:15px}
+.m.on{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,var(--card))}
+.m b{color:var(--ok);display:block;font-size:12px;margin-top:4px}
+.m.z{visibility:hidden}
+.stats{display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.st{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 16px}
+.st b{display:block;font-size:24px;color:var(--acc)}
+.st span{font-size:13px;color:var(--mut)}
+@media(max-width:700px){.week{grid-template-columns:1fr 1fr}.g{min-width:300px;width:300px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏋️ GYM LOG</h1>
+  <input id="ath" list="aths" placeholder="Nome atleta" autocomplete="off">
+  <datalist id="aths"></datalist>
+  <div class="nav"><button id="prev">◀</button><div id="lbl"></div><button id="next">▶</button><button id="oggi">Oggi</button></div>
+  <div class="sp"></div>
+  <button data-v="day">Giorno</button><button data-v="week">Settimana</button><button data-v="month">Mese</button>
+  <button id="bk" title="Salva/carica backup">💾</button>
+</header>
+<main id="main"></main>
+<input type="file" id="file" accept=".json" hidden>
+<datalist id="mg"><option>Petto</option><option>Schiena</option><option>Spalle</option><option>Bicipiti</option><option>Tricipiti</option><option>Gambe</option><option>Glutei</option><option>Addome</option><option>Polpacci</option></datalist>
+<script>
+var KEY='gymlog_v1',db={athletes:{}},st={ath:'',date:'',view:'day'};
+function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function parse(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function add(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x}
+function mon(d){var x=new Date(d);x.setDate(x.getDate()-((x.getDay()+6)%7));return x}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function fmt(d,o){return d.toLocaleDateString('it-IT',o)}
+try{var raw=JSON.parse(localStorage.getItem(KEY));if(raw&&raw.athletes)db=raw;st.ath=localStorage.getItem(KEY+'_a')||''}catch(e){}
+st.date=iso(new Date());
+function save(){try{localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(KEY+'_a',st.ath)}catch(e){}}
+function days(){return db.athletes[st.ath]||{}}
+function ensure(){if(!db.athletes[st.ath])db.athletes[st.ath]={};if(!db.athletes[st.ath][st.date])db.athletes[st.ath][st.date]=[];return db.athletes[st.ath][st.date]}
+function vol(g){return g.ex.reduce(function(a,e){return a+(+e.s||0)*(+e.r||0)*(+e.kg||0)},0)}
+function dvol(gs){return gs.reduce(function(a,g){return a+vol(g)},0)}
+function kg(n){return Math.round(n).toLocaleString('it-IT')+' kg'}
+function head(){
+  var l=document.getElementById('aths');l.innerHTML=Object.keys(db.athletes).map(function(a){return '<option value="'+esc(a)+'">'}).join('');
+  document.getElementById('ath').value=st.ath;
+  document.querySelectorAll('[data-v]').forEach(function(b){b.classList.toggle('on',b.dataset.v===st.view)});
+  var d=parse(st.date),t;
+  if(st.view==='day')t=fmt(d,{weekday:'long',day:'numeric',month:'long'});
+  else if(st.view==='week'){var m=mon(d);t=fmt(m,{day:'numeric',month:'short'})+' – '+fmt(add(m,6),{day:'numeric',month:'short'})}
+  else t=fmt(d,{month:'long',year:'numeric'});
+  document.getElementById('lbl').textContent=t;
+}
+function render(){
+  head();var M=document.getElementById('main');
+  if(!st.ath){M.innerHTML='<div class="empty">👆 Scrivi il nome dell\'atleta per iniziare</div>';return}
+  if(st.view==='day')M.innerHTML=dayView();else if(st.view==='week')M.innerHTML=weekView();else M.innerHTML=monthView();
+}
+function dayView(){
+  var gs=days()[st.date]||[],h='<div class="cols">';
+  gs.forEach(function(g,gi){
+    h+='<div class="g"><input class="t" list="mg" placeholder="Gruppo muscolare" value="'+esc(g.name)+'" data-g="'+gi+'" data-f="name">';
+    h+='<div class="hd"><span>Esercizio</span><span>Serie</span><span>Rip.</span><span>Kg</span><span></span></div>';
+    g.ex.forEach(function(e,ei){
+      h+='<div class="e"><input placeholder="Esercizio" value="'+esc(e.n)+'" data-g="'+gi+'" data-e="'+ei+'" data-f="n">'+
+      ['s','r','kg'].map(function(f){return '<input type="number" inputmode="decimal" min="0" step="'+(f==='kg'?'0.5':'1')+'" value="'+esc(e[f])+'" data-g="'+gi+'" data-e="'+ei+'" data-f="'+f+'">'}).join('')+
+      '<button class="x" data-act="dex" data-g="'+gi+'" data-e="'+ei+'">✕</button></div>';
+    });
+    h+='<button class="add" data-act="aex" data-g="'+gi+'">+ Esercizio</button>';
+    h+='<div class="vol">Volume: <b id="v'+gi+'">'+kg(vol(g))+'</b> · <a href="#" data-act="dg" data-g="'+gi+'" style="color:var(--mut)">elimina gruppo</a></div></div>';
+  });
+  h+='<button class="newg" data-act="ag">+ Gruppo muscolare</button></div>';
+  if(!gs.length)h+='<div class="empty">Nessun allenamento registrato per questo giorno</div>';
+  else h+='<div class="stats"><div class="st"><b id="tv">'+kg(dvol(gs))+'</b><span>volume totale (serie × rip. × kg)</span></div></div>';
+  return h;
+}
+function weekView(){
+  var m=mon(parse(st.date)),h='<div class="week">',tot=0,n=0,D=days();
+  for(var i=0;i<7;i++){
+    var d=add(m,i),k=iso(d),gs=D[k]||[];
+    if(gs.length){n++;tot+=dvol(gs)}
+    h+='<div class="d'+(k===iso(new Date())?' tod':'')+'" data-go="'+k+'"><h3>'+fmt(d,{weekday:'short',day:'numeric'})+'</h3>';
+    h+=gs.map(function(g){return '<span class="tag">'+esc(g.name||'?')+' · '+g.ex.length+'</span>'}).join('')||'<small>Riposo</small>';
+    if(gs.length)h+='<small>'+kg(dvol(gs))+'</small>';
+    h+='</div>';
+  }
+  return '<div class="stats"><div class="st"><b>'+n+'</b><span>allenamenti</span></div><div class="st"><b>'+kg(tot)+'</b><span>volume settimana</span></div></div>'+h+'</div>';
+}
+function monthView(){
+  var c=parse(st.date),y=c.getFullYear(),mo=c.getMonth(),D=days(),n=0,tot=0,cnt={};
+  var last=new Date(y,mo+1,0).getDate(),lead=(new Date(y,mo,1).getDay()+6)%7,h='<div class="month">';
+  ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].forEach(function(x){h+='<div class="mh">'+x+'</div>'});
+  for(var i=0;i<lead;i++)h+='<div class="m z"></div>';
+  for(var d=1;d<=last;d++){
+    var k=iso(new Date(y,mo,d)),gs=D[k]||[];
+    if(gs.length){n++;tot+=dvol(gs);gs.forEach(function(g){var q=(g.name||'?').trim();cnt[q]=(cnt[q]||0)+1})}
+    h+='<div class="m'+(gs.length?' on':'')+'" data-go="'+k+'">'+d+(gs.length?'<b>'+gs.map(function(g){return esc((g.name||'?').slice(0,6))}).join(', ')+'</b>':'')+'</div>';
+  }
+  var top=Object.keys(cnt).sort(function(a,b){return cnt[b]-cnt[a]}).slice(0,3).map(function(q){return q+' ('+cnt[q]+')'}).join(', ')||'—';
+  return '<div class="stats"><div class="st"><b>'+n+'</b><span>giorni di allenamento</span></div><div class="st"><b>'+kg(tot)+'</b><span>volume mese</span></div><div class="st"><b style="font-size:18px">'+esc(top)+'</b><span>gruppi più allenati</span></div></div>'+h+'</div>';
+}
+document.getElementById('main').addEventListener('input',function(ev){
+  var t=ev.target,f=t.dataset.f;if(!f)return;
+  var gs=ensure(),g=gs[+t.dataset.g];if(!g)return;
+  if(f==='name')g.name=t.value;else{g.ex[+t.dataset.e][f]=t.value;
+    var v=document.getElementById('v'+t.dataset.g);if(v)v.textContent=kg(vol(g));
+    var tv=document.getElementById('tv');if(tv)tv.textContent=kg(dvol(gs))}
+  save();
+});
+document.getElementById('main').addEventListener('click',function(ev){
+  var t=ev.target.closest('[data-act],[data-go]');if(!t)return;ev.preventDefault();
+  if(t.dataset.go){st.date=t.dataset.go;st.view='day';render();return}
+  var gs=ensure(),g=gs[+t.dataset.g],a=t.dataset.act;
+  if(a==='ag')gs.push({name:'',ex:[{n:'',s:'',r:'',kg:''}]});
+  if(a==='aex')g.ex.push({n:'',s:g.ex.length?g.ex[g.ex.length-1].s:'',r:'',kg:''});
+  if(a==='dex')g.ex.splice(+t.dataset.e,1);
+  if(a==='dg'&&confirm('Eliminare questo gruppo muscolare?'))gs.splice(+t.dataset.g,1);
+  if(!gs.length)delete db.athletes[st.ath][st.date];
+  save();render();
+});
+document.getElementById('ath').addEventListener('change',function(){
+  var v=this.value.trim();st.ath=v;if(v&&!db.athletes[v])db.athletes[v]={};save();render();
+});
+function step(n){
+  var d=parse(st.date);
+  if(st.view==='day')d=add(d,n);else if(st.view==='week')d=add(d,7*n);else d=new Date(d.getFullYear(),d.getMonth()+n,1);
+  st.date=iso(d);render();
+}
+document.getElementById('prev').onclick=function(){step(-1)};
+document.getElementById('next').onclick=function(){step(1)};
+document.getElementById('oggi').onclick=function(){st.date=iso(new Date());render()};
+document.querySelectorAll('[data-v]').forEach(function(b){b.onclick=function(){st.view=b.dataset.v;render()}});
+document.getElementById('bk').onclick=function(){
+  if(confirm('OK = scarica backup dei dati\nAnnulla = carica un backup da file')){
+    var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db)],{type:'application/json'}));a.download='gymlog-backup-'+iso(new Date())+'.json';a.click();
+  }else document.getElementById('file').click();
+};
+document.getElementById('file').onchange=function(){
+  var f=this.files[0];if(!f)return;var r=new FileReader();
+  r.onload=function(){try{var o=JSON.parse(r.result);if(o.athletes){db=o;save();render()}}catch(e){alert('File non valido')}};r.readAsText(f);
+};
+render();
+</script>
+</body>
+</html>
