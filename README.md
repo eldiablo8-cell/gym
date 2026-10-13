@@ -10,6 +10,7 @@ App per tracciare gli allenamenti di pesistica, pensata per un tablet in orizzon
 - Elenco esercizi con tendina di richiamo (si riempie anche da solo quando scrivi un esercizio nuovo)
 - Record personali (🏆 PR), grafici di progressione, timer di recupero e scheda settimanale per atleta
 - Funziona offline, si installa come una vera app
+- Sincronizzazione dei dati tra tablet e telefono (pulsante ☁ in alto)
 - Backup e ripristino dei dati con il pulsante 💾
 
 ## File del progetto
@@ -18,6 +19,7 @@ App per tracciare gli allenamenti di pesistica, pensata per un tablet in orizzon
 |---|---|
 | `index.html` | L'app vera e propria |
 | `manifest.json` | Nome, colori e icone per l'installazione |
+| `cloud.js` | Sincronizzazione online con Firebase (accesso + database) |
 | `sw.js` | Permette di usarla offline |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png`, `apple-touch-icon.png` | Icone dell'app |
 
@@ -42,6 +44,35 @@ Sul tablet della palestra, dopo l'installazione, apri l'app dalla schermata Home
 
 Sostituisci i file nel repository con quelli nuovi. L'app prende gli aggiornamenti da sola quando il tablet è online (alla riapertura, eventualmente dopo averla chiusa e riaperta due volte).
 
+## Sincronizzazione online (Firebase)
+
+L'app usa il progetto Firebase `zampa-s-gym`. Ogni dispositivo accede con lo stesso account (email e password creati in *Authentication → Users*) e vede gli stessi dati.
+
+Impostazioni necessarie nella console Firebase:
+
+1. **Authentication → Sign-in method:** abilitare *Email/Password* e creare l'utente in *Users → Add user*.
+2. **Firestore Database:** creato in modalità produzione.
+3. **Firestore → Rules:** incollare queste regole e premere *Publish*:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
+```
+
+Come funziona:
+
+- Il pulsante ☁ in alto mostra lo stato: `☁ Accedi` (non connesso), `☁ …` (salvataggio), `☁ ✓` (sincronizzato), `☁ offline`, `☁ !` (errore, passa sopra o tocca per i dettagli).
+- Senza internet l'app funziona lo stesso e i dati si sincronizzano appena torna la connessione.
+- Al primo accesso i dati già presenti sul dispositivo vengono caricati online. Se lo stesso giorno esiste già online, vale la versione online.
+- Se due dispositivi modificano lo stesso giorno insieme, vince l'ultima modifica.
+- Se vedi l'errore `unauthorized-domain`, aggiungi `TUO-UTENTE.github.io` in *Authentication → Settings → Authorized domains*.
+
 ## I dati
 
-I dati restano nella memoria del singolo dispositivo (localStorage) e non vengono condivisi tra tablet e telefono. Fai ogni tanto un backup con 💾. Cancellare i dati di navigazione del browser o disinstallare l'app può cancellare anche gli allenamenti.
+I dati sono salvati anche nella memoria del dispositivo (localStorage). Fai ogni tanto un backup con 💾: cancellare i dati di navigazione del browser o disinstallare l'app cancella la copia locale (quella online resta).

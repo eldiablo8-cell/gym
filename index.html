@@ -61,6 +61,10 @@ main{flex:1;overflow:auto;padding:14px 16px 90px}
 .st b{display:block;font-size:24px;color:var(--acc)}
 .st span{font-size:13px;color:var(--mut)}
 @media(max-width:700px){body{font-size:16px}header{gap:8px;padding:8px 10px}h1{font-size:18px;width:100%}#ath{width:100%}.nav{width:100%;justify-content:space-between}#lbl{min-width:0;flex:1}header>button{flex:1;padding:8px 6px;min-height:42px}.sp{display:none}main{padding:10px 10px 90px}.cols{flex-direction:column;overflow-x:visible}.g,.newg{width:100%;min-width:0}.newg{height:70px}.week{grid-template-columns:1fr 1fr}.d{min-height:120px}.m{min-height:52px;padding:3px;font-size:13px}.m b{display:none}.e{gap:4px;grid-template-columns:repeat(4,1fr) 34px}.e input{font-size:16px;padding:8px 2px}.e label{font-size:10px}#tm{left:10px;right:10px;justify-content:space-between;padding:6px}#tt{font-size:22px;min-width:60px}#tm button{padding:6px 8px}}
+#lg{position:fixed;inset:0;background:#000b;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+#lg[hidden]{display:none}
+.lgc{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:24px;width:380px;max-width:100%;display:flex;flex-direction:column;gap:12px}
+.lgc h2{margin:0;color:var(--acc)}.lgc p{margin:0;color:var(--mut);font-size:15px}#lge{color:#ff6b6b;min-height:20px;font-size:15px}
 </style>
 </head>
 <body>
@@ -72,11 +76,23 @@ main{flex:1;overflow:auto;padding:14px 16px 90px}
   <div class="sp"></div>
   <button data-v="day">Giorno</button><button data-v="week">Settimana</button><button data-v="month">Mese</button><button data-v="prog">📈 Progressi</button><button data-v="plan">📋 Scheda</button><button data-v="lib">📚 Esercizi</button>
   <button id="bk" title="Salva/carica backup">💾</button>
+  <button id="cl" title="Sincronizzazione online">☁</button>
   <button id="inst" hidden>⬇ Installa</button>
 </header>
 <main id="main"></main>
 <div id="tm"><span id="tt">0:00</span><button data-t="30">0:30</button><button data-t="60">1'</button><button data-t="90">1:30</button><button data-t="120">2'</button><button data-t="180">3'</button><button data-x="1">⏹</button></div>
 <input type="file" id="file" accept=".json" hidden>
+<div id="lg" hidden>
+  <form id="lgf" class="lgc">
+    <h2>ZAMPA'S GYM</h2>
+    <p>Accedi per sincronizzare gli allenamenti su tutti i dispositivi.</p>
+    <input id="lgm" type="email" autocomplete="username" placeholder="Email" required>
+    <input id="lgp" type="password" autocomplete="current-password" placeholder="Password" required>
+    <div id="lge"></div>
+    <button class="on" type="submit">Accedi</button>
+    <button type="button" id="lgs">Continua senza accedere</button>
+  </form>
+</div>
 <datalist id="mg"><option>Petto</option><option>Schiena</option><option>Spalle</option><option>Bicipiti</option><option>Tricipiti</option><option>Gambe</option><option>Glutei</option><option>Addome</option><option>Polpacci</option></datalist>
 <script>
 var KEY='gymlog_v1',db={athletes:{}},st={ath:'',date:'',view:'day',pd:(new Date().getDay()+6)%7,ex:''};
@@ -88,7 +104,7 @@ function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp
 function fmt(d,o){return d.toLocaleDateString('it-IT',o)}
 try{var raw=JSON.parse(localStorage.getItem(KEY));if(raw&&raw.athletes)db=raw;st.ath=localStorage.getItem(KEY+'_a')||''}catch(e){}
 st.date=iso(new Date());
-function save(){try{localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(KEY+'_a',st.ath)}catch(e){}}
+function save(skip){try{localStorage.setItem(KEY,JSON.stringify(db));localStorage.setItem(KEY+'_a',st.ath)}catch(e){}if(!skip&&window.cloud)cloud.mark()}
 function days(){return db.athletes[st.ath]||{}}
 function loc(){var a=st.ath,p=st.view==='plan',o;if(p){db.plans=db.plans||{};o=db.plans[a]=db.plans[a]||{}}else o=db.athletes[a]=db.athletes[a]||{};return [o,p?st.pd:st.date]}
 function ensure(){var l=loc();return l[0][l[1]]=l[0][l[1]]||[]}
@@ -226,7 +242,7 @@ document.getElementById('bk').onclick=function(){
 };
 document.getElementById('file').onchange=function(){
   var f=this.files[0];if(!f)return;var r=new FileReader();
-  r.onload=function(){try{var o=JSON.parse(r.result);if(o.athletes){db=o;save();render()}}catch(e){alert('File non valido')}};r.readAsText(f);
+  r.onload=function(){try{var o=JSON.parse(r.result);if(o.athletes){db=o;save();render();if(window.cloud)cloud.pushAll()}}catch(e){alert('File non valido')}};r.readAsText(f);
 };
 var dp=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;document.getElementById('inst').hidden=false});
@@ -236,5 +252,6 @@ try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}
 if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0)navigator.serviceWorker.register('sw.js').catch(function(){});
 render();
 </script>
+<script type="module" src="cloud.js"></script>
 </body>
 </html>

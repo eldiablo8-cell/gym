@@ -1,6 +1,6 @@
 // Service worker di ZAMPA'S GYM: prima la rete (così gli aggiornamenti arrivano subito), poi la copia salvata (funziona offline)
-var CACHE = 'zampas-gym-v1';
-var FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
+var CACHE = 'zampas-gym-v2';
+var FILES = ['./', './index.html', './cloud.js', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
@@ -13,8 +13,9 @@ self.addEventListener('activate', function (e) {
 });
 
 self.addEventListener('fetch', function (e) {
-  var r = e.request;
-  if (r.method !== 'GET' || new URL(r.url).origin !== location.origin) return;
+  var r = e.request, u = new URL(r.url);
+  // si gestiscono i file dell'app e le librerie Firebase (così si apre anche offline)
+  if (r.method !== 'GET' || (u.origin !== location.origin && u.hostname !== 'www.gstatic.com')) return;
   e.respondWith(
     fetch(r).then(function (res) {
       if (res && res.ok) { var cp = res.clone(); caches.open(CACHE).then(function (c) { c.put(r, cp); }); }
